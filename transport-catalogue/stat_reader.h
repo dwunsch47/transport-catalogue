@@ -10,10 +10,10 @@ namespace tcat {
 namespace output {
 class StatReader {
 public:
-    void LoadOutputQueries(std::istream& output, TransportCatalogue& catalogue) const;
+    void LoadOutputQueries(std::istream& input, std::ostream& output, TransportCatalogue& catalogue) const;
 private:
-    void OutputBusInfo(const BusInfo& bus_info) const;
-    void OutputStopInfo(const StopInfo& stop_info) const;
+    void OutputBusInfo(const BusInfo& bus_info, std::ostream& out) const;
+    void OutputStopInfo(const StopInfo& stop_info, std::ostream& out) const;
 };
 }
 }

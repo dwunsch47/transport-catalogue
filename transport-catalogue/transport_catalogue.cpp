@@ -6,8 +6,8 @@
 #include <tuple>
 #include <utility>
 #include <iostream>
-#include <unordered_set>
 #include <set>
+#include <algorithm>
 
 #include "transport_catalogue.h"
 #include "geo.h"
@@ -31,6 +31,7 @@ void TransportCatalogue::AddBus(const PreBus& pre_bus) {
     Bus bus;
     bus.name = move(pre_bus.name);
     bus.type = move(pre_bus.type);
+    
     for (const std::string_view stop : pre_bus.stops) {
         Stop* stop_ptr = FindStop(stop);
         bus.stops.push_back(stop_ptr);
@@ -38,6 +39,12 @@ void TransportCatalogue::AddBus(const PreBus& pre_bus) {
     }
     buses_.push_back(move(bus));
     Bus* bus_ptr = &buses_.back();
+    bus_ptr->number_of_stops = CalculateStops(bus_ptr);
+    bus_ptr->unique_stops = CalculateUniqueStops(bus_ptr);
+    auto pair_dist_curvature = CalculateRouteLength(bus_ptr);
+    bus_ptr->route_length = move(pair_dist_curvature.first);
+    bus_ptr->curvature = move(pair_dist_curvature.second);
+    
     busname_to_bus_.emplace(buses_.back().name, bus_ptr);
 }
     
@@ -49,19 +56,19 @@ Bus* TransportCatalogue::FindBus(string_view bus_name) const {
 }
     
 BusInfo TransportCatalogue::GetBusInfo(string_view bus_name) const {
-    BusInfo bus_info;
-    bus_info.name = string(bus_name);
     const Bus* bus_ptr = FindBus(bus_name);
     if (!bus_ptr) {
-        bus_info.stops = 0;
-        return bus_info;
+        return BusInfo(string(bus_name),
+                      0,
+                      0,
+                      0,
+                      0);
     }
-    bus_info.stops = CalculateStops(bus_ptr);
-    bus_info.unique_stops = CalculateUniqueStops(bus_ptr);
-    auto pair_dist_curvature = CalculateRouteLength(bus_ptr);
-    bus_info.route_length = move(pair_dist_curvature.first);
-    bus_info.curvature = move(pair_dist_curvature.second);
-    return bus_info;
+    return BusInfo(bus_ptr->name,
+                  bus_ptr->number_of_stops,
+                  bus_ptr->unique_stops,
+                  bus_ptr->route_length,
+                  bus_ptr->curvature);
 }
     
 void TransportCatalogue::AddDistanceBetweenStops(const StopDistances& stop_distances) {
@@ -78,7 +85,10 @@ size_t TransportCatalogue::CalculateStops(const Bus* bus_ptr) const {
 }
     
 size_t TransportCatalogue::CalculateUniqueStops(const Bus* bus_ptr) const {
-    return unordered_set<Stop*>(bus_ptr->stops.begin(), bus_ptr->stops.end()).size();
+    vector<Stop*> tmp = bus_ptr->stops;
+    sort(tmp.begin(), tmp.end());
+    auto last = unique(tmp.begin(), tmp.end());
+    return (last != tmp.end() ? distance(tmp.begin(), last) : tmp.size());
 }
     
 pair<size_t, double> TransportCatalogue::CalculateRouteLength(const Bus* bus_ptr) const {

@@ -14,5 +14,5 @@ int main() {
     tcat::TransportCatalogue catalogue;
     tcat::output::StatReader stats;
     reader.LoadInputQueries(cin, catalogue);
-    stats.LoadOutputQueries(cin, catalogue); 
+    stats.LoadOutputQueries(cin, cout,  catalogue); 
 }

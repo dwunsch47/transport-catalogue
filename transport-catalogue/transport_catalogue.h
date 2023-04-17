@@ -25,10 +25,16 @@ namespace tcat {
     struct Bus {
         std::string name;
         std::vector<Stop*> stops;
+        size_t number_of_stops = 0;
+        size_t unique_stops = 0;
+        size_t route_length = 0;
+        double curvature = 0;
         std::string type;
     };
     
     struct BusInfo {
+        explicit BusInfo(std::string_view name, size_t stops, size_t unique_stops, size_t route_length, double curvature) :
+                        name(name), stops(stops), unique_stops(unique_stops), route_length(route_length), curvature(curvature) {}
         std::string name;
         size_t stops = 0;
         size_t unique_stops = 0;
