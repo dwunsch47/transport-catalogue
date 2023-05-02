@@ -1,18 +1,15 @@
-#include <string>
-#include <string_view>
-#include <sstream>
 #include <iostream>
-#include <utility>
 
-#include "input_reader.h"
-#include "stat_reader.h"
+#include "map_renderer.h"
+#include "transport_catalogue.h"
+#include "json_reader.h"
 
 using namespace std;
 
 int main() {
-    tcat::input::InputReader reader;
     tcat::TransportCatalogue catalogue;
-    tcat::output::StatReader stats;
-    reader.LoadInputQueries(cin, catalogue);
-    stats.LoadOutputQueries(cin, cout,  catalogue); 
+    map_r::MapRenderer map_renderer;
+    io::JsonReader reader;
+    reader.LoadBaseQueries(cin, cout, catalogue, map_renderer);
+    reader.LoadStatQueries(cin, cout, catalogue, map_renderer);
 }

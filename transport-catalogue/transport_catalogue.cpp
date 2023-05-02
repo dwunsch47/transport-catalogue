@@ -8,9 +8,11 @@
 #include <iostream>
 #include <set>
 #include <algorithm>
+#include <map>
 
 #include "transport_catalogue.h"
 #include "geo.h"
+#include "domain.h"
 
 using namespace std;
 
@@ -80,21 +82,37 @@ void TransportCatalogue::AddDistanceBetweenStops(const StopDistances& stop_dista
     }
 }
     
-size_t TransportCatalogue::CalculateStops(const Bus* bus_ptr) const {
+map<string, RenderData> TransportCatalogue::GetAllRoutes() const {
+    map<string, RenderData> result;
+    for(const auto& bus : buses_) {
+        if (bus.number_of_stops > 0) {
+            RenderData render_data;
+            for (const auto& stop : bus.stops) {
+                render_data.stop_coords.push_back(stop->coordinates);
+                render_data.stop_names.push_back(stop->name);
+            }
+            render_data.is_circular = (bus.type == "circular" ? true : false);
+            result.emplace(bus.name, render_data);
+        }
+    }
+    return result;
+}
+    
+int TransportCatalogue::CalculateStops(const Bus* bus_ptr) const {
         return bus_ptr->stops.size();
 }
     
-size_t TransportCatalogue::CalculateUniqueStops(const Bus* bus_ptr) const {
+int TransportCatalogue::CalculateUniqueStops(const Bus* bus_ptr) const {
     vector<Stop*> tmp = bus_ptr->stops;
     sort(tmp.begin(), tmp.end());
     auto last = unique(tmp.begin(), tmp.end());
     return (last != tmp.end() ? distance(tmp.begin(), last) : tmp.size());
 }
     
-pair<size_t, double> TransportCatalogue::CalculateRouteLength(const Bus* bus_ptr) const {
-    size_t route_length = 0;
+pair<int, double> TransportCatalogue::CalculateRouteLength(const Bus* bus_ptr) const {
+    int route_length = 0;
     double coord_length = 0;
-    for (int i = 0; i < bus_ptr->stops.size() - 1; ++i) {
+    for (size_t i = 0; i < bus_ptr->stops.size() - 1; ++i) {
         Stop* first = FindStop(bus_ptr->stops[i]->name);
         Stop* second = FindStop(bus_ptr->stops[i + 1]->name);
         if (distance_between_stops_.find({first, second}) == distance_between_stops_.end()) {
@@ -102,7 +120,7 @@ pair<size_t, double> TransportCatalogue::CalculateRouteLength(const Bus* bus_ptr
         } else {
             route_length += distance_between_stops_.at({first, second});
         }
-        coord_length += geo::ComputeDistance({first->latitude, first->longtitude}, {second->latitude, second->longtitude});
+        coord_length += geo::ComputeDistance(first->coordinates, second->coordinates);
     }
     return {route_length, route_length / coord_length};
 }
