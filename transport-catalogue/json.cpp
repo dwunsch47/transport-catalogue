@@ -2,6 +2,8 @@
 
 #include <iterator>
 
+using namespace std;
+
 namespace json {
 
 namespace {
@@ -340,6 +342,111 @@ void PrintNode(const Node& node, const PrintContext& ctx) {
 
 }  // namespace
 
+Node::Node(Value value) : variant(move(value)) {}
+    
+bool Node::IsInt() const {
+    return holds_alternative<int>(*this);
+}
+    
+bool Node::IsPureDouble() const {
+    return holds_alternative<double>(*this);
+}
+    
+bool Node::IsDouble() const {
+    return IsInt() || IsPureDouble();
+}
+bool Node::IsBool() const {
+    return holds_alternative<bool>(*this);
+}
+bool Node::IsString() const {
+    return holds_alternative<string>(*this);
+}
+bool Node::IsNull() const {
+    return holds_alternative<nullptr_t>(*this);
+}
+bool Node::IsArray() const {
+    return holds_alternative<Array>(*this);
+}
+bool Node::IsDict() const {
+    return holds_alternative<Dict>(*this);
+}
+
+int Node::AsInt() const {
+    if (!IsInt()) {
+        throw logic_error("not an int"s);
+    }
+    return get<int>(*this);
+}
+
+bool Node::AsBool() const {
+    if (!IsBool()) {
+        throw logic_error("not a bool"s);
+    }
+    return get<bool>(*this);
+}
+    
+double Node::AsDouble() const {
+    if (!IsDouble()) {
+        throw logic_error("not a double or int"s);
+    }
+    if (IsPureDouble()) {
+        return get<double>(*this);
+    } else {
+        return static_cast<double>(get<int>(*this));
+    }
+}
+    
+const string& Node::AsString() const {
+    if (!IsString()) {
+        throw logic_error("not a string"s);
+    }
+    return get<string>(*this);
+}
+    
+const Array& Node::AsArray() const {
+    if (!IsArray()) {
+        throw logic_error("not an array"s);
+    }
+    return get<Array>(*this);
+}
+    
+Array& Node::AsArray() {
+    if (!IsArray()) {
+        throw logic_error("not an array"s);
+    }
+    return get<Array>(*this);
+}
+
+const Dict& Node::AsDict() const {
+    if (!IsDict()) {
+        throw logic_error("not a dict"s);
+    }
+    return get<Dict>(*this);
+}
+    
+Dict& Node::AsDict() {
+    if (!IsDict()) {
+        throw logic_error("not a dict"s);
+    }
+    return get<Dict>(*this);
+}
+    
+Node::Value& Node::GetValue() {
+    return *this;
+}
+    
+const Node::Value& Node::GetValue() const {
+    return *this;
+}
+    
+Document::Document(Node root)
+    : root_(move(root)) {
+}
+
+const Node& Document::GetRoot() const {
+    return root_;
+}
+    
 Document Load(std::istream& input) {
     return Document{LoadNode(input)};
 }
@@ -347,7 +454,5 @@ Document Load(std::istream& input) {
 void Print(const Document& doc, std::ostream& output) {
     PrintNode(doc.GetRoot(), PrintContext{output});
 }
-    
-Node::Node(Value value) : variant(std::move(value)) {}
 
 }  // namespace json

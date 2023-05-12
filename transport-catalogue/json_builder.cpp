@@ -47,6 +47,7 @@ BaseContext Builder::Value(Node::Value value) {
     } else if (parent->IsDict()) {
         if (key_opened_) {
             parent->AsDict()[current_key_] = move(value);
+            //current_key_.clear();
             key_opened_ = false;
         } else {
             throw logic_error("No key was opened"s);
@@ -58,7 +59,7 @@ BaseContext Builder::Value(Node::Value value) {
     return *this;
 }
     
-DictItemContext Builder::StartDict() {
+DictValueItemContext Builder::StartDict() {
     if (root_ == nullptr) {
         root_ = Dict();
         nodes_stack_.push_back(&root_);
@@ -77,6 +78,7 @@ DictItemContext Builder::StartDict() {
         if (key_opened_) {
             parent->AsDict()[current_key_] = Dict{};
             nodes_stack_.push_back(&parent->AsDict().at(current_key_));
+            //current_key_.clear();
             key_opened_ = false;
         } else {
             throw logic_error("No opened key"s);
@@ -107,6 +109,7 @@ ArrayItemContext Builder::StartArray() {
         if (key_opened_) {
             parent->AsDict()[current_key_] = Array{};
             nodes_stack_.push_back(&parent->AsDict().at(current_key_));
+            //current_key_.clear();
             key_opened_ = false;
         } else {
             throw logic_error("No opened key"s);
@@ -149,7 +152,7 @@ KeyItemContext BaseContext::Key(std::string key) {
 BaseContext BaseContext::Value(Node::Value value) {
     return builder_.Value(move(value));
 }  
-DictItemContext BaseContext::StartDict() {
+DictValueItemContext BaseContext::StartDict() {
     return builder_.StartDict();
 }  
 ArrayItemContext BaseContext::StartArray() {
@@ -165,41 +168,27 @@ Node BaseContext::Build() {
     return builder_.Build();
 }
     
-ValueAfterKeyContext KeyItemContext::Value(Node::Value value) {
+DictValueItemContext KeyItemContext::Value(Node::Value value) {
     return BaseContext::Value(move(value));
 }
-DictItemContext KeyItemContext::StartDict() {
+DictValueItemContext KeyItemContext::StartDict() {
     return BaseContext::StartDict();
 }
 ArrayItemContext KeyItemContext::StartArray() {
     return BaseContext::StartArray();
 }
     
-KeyItemContext ValueAfterKeyContext::Key(std::string key) {
+KeyItemContext DictValueItemContext::Key(std::string key) {
     return BaseContext::Key(move(key));
 }
     
-KeyItemContext DictItemContext::Key(std::string key) {
-    return BaseContext::Key(move(key));
-}
-    
-ArrayValueContext ArrayItemContext::Value(Node::Value value) {
+ArrayItemContext ArrayItemContext::Value(Node::Value value) {
     return BaseContext::Value(move(value));
 }
-DictItemContext ArrayItemContext::StartDict() {
+DictValueItemContext ArrayItemContext::StartDict() {
     return BaseContext::StartDict();
 }
 ArrayItemContext ArrayItemContext::StartArray() {
-    return BaseContext::StartArray();
-}
-    
-ArrayValueContext ArrayValueContext::Value(Node::Value value) {
-    return BaseContext::Value(move(value));
-}
-DictItemContext ArrayValueContext::StartDict() {
-    return BaseContext::StartDict();
-}
-ArrayItemContext ArrayValueContext::StartArray() {
     return BaseContext::StartArray();
 }
     
