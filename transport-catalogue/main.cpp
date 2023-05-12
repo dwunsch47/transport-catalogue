@@ -10,6 +10,6 @@ int main() {
     tcat::TransportCatalogue catalogue;
     map_r::MapRenderer map_renderer;
     io::JsonReader reader;
-    reader.LoadBaseQueries(cin, cout, catalogue, map_renderer);
-    reader.LoadStatQueries(cin, cout, catalogue, map_renderer);
+    reader.LoadBaseQueries(cin, catalogue, map_renderer);
+    reader.LoadStatQueries(cout, catalogue, map_renderer);
 }

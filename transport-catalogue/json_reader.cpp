@@ -6,15 +6,16 @@
 #include "json.h"
 #include "domain.h"
 #include "json_reader.h"
+#include "json_builder.h"
 #include "map_renderer.h"
 #include "transport_catalogue.h"
 
 using namespace std;
 
 namespace io {
-void JsonReader::LoadBaseQueries(istream& input, ostream& /*output*/, tcat::TransportCatalogue& catalogue, map_r::MapRenderer& m_r) {
+void JsonReader::LoadBaseQueries(istream& input, tcat::TransportCatalogue& catalogue, map_r::MapRenderer& m_r) {
     doc_ = json::Load(input);
-    const json::Dict dict = doc_.GetRoot().AsMap();
+    const json::Dict dict = doc_.GetRoot().AsDict();
     
     const auto base_reqs = dict.find("base_requests"s);
     if (base_reqs != dict.end()) {
@@ -23,12 +24,12 @@ void JsonReader::LoadBaseQueries(istream& input, ostream& /*output*/, tcat::Tran
     
     const auto render_reqs = dict.find("render_settings"s);
     if (render_reqs != dict.end()) {
-        ParseRenderRequests(render_reqs->second.AsMap(), m_r);
+        ParseRenderRequests(render_reqs->second.AsDict(), m_r);
     }
 }
     
-void JsonReader::LoadStatQueries(istream& /*input*/, ostream& output, tcat::TransportCatalogue& catalogue, map_r::MapRenderer& m_r) {
-    const json::Dict dict = doc_.GetRoot().AsMap();
+void JsonReader::LoadStatQueries(ostream& output, tcat::TransportCatalogue& catalogue, map_r::MapRenderer& m_r) {
+    const json::Dict dict = doc_.GetRoot().AsDict();
     
     const auto stat_reqs = dict.find("stat_requests"s);
     if (stat_reqs != dict.end()) {
@@ -41,7 +42,7 @@ void JsonReader::ParseBaseRequests(json::Array base_requests, tcat::TransportCat
     vector<tcat::PreBus> buses;
     vector<tcat::StopDistances> stop_distances;
     for (const auto& request : base_requests) {
-        json::Dict req_root = request.AsMap();
+        json::Dict req_root = request.AsDict();
         if (req_root.at("type"s).AsString() == "Stop"s) {
             stops.push_back(ParseStop(req_root));
             stop_distances.push_back(ParseStopDistances(req_root));
@@ -90,7 +91,7 @@ tcat::PreBus JsonReader::ParsePreBus(const json::Dict& dict) const {
 tcat::StopDistances JsonReader::ParseStopDistances(const json::Dict& dict) const {
     tcat::StopDistances stop_with_dists;
     stop_with_dists.name = dict.at("name"s).AsString();
-    for (const auto& [name, distance] : dict.at("road_distances"s).AsMap()) {
+    for (const auto& [name, distance] : dict.at("road_distances"s).AsDict()) {
         stop_with_dists.stop_to_distance.emplace(name, distance.AsInt());
     }
     return stop_with_dists;
@@ -117,8 +118,6 @@ void JsonReader::ParseRenderRequests(json::Dict render_requests, map_r::MapRende
         move(complete_color_palette)
     };
     m_r.LoadRenderSettings(render_data);
-    //svg::Document map = m_r.RenderMap(catalogue);
-    //map.Render(output);
 }
    
 svg::Color JsonReader::ParseColorData(const json::Node& color) const {
@@ -147,8 +146,7 @@ svg::Color JsonReader::ParseColorData(const json::Node& color) const {
 void JsonReader::ParseStatRequests(json::Array stat_requests, ostream& output, tcat::TransportCatalogue& catalogue, map_r::MapRenderer& m_r) const {
     json::Array queries;
     for (const auto& request : stat_requests) {
-        json::Dict stat_root = request.AsMap();
-        //string name = stat_root.at("name"s).AsString();
+        json::Dict stat_root = request.AsDict();
         int id = stat_root.at("id"s).AsInt();
         string type = stat_root.at("type"s).AsString();
         if (type == "Stop"s) {
@@ -164,36 +162,42 @@ void JsonReader::ParseStatRequests(json::Array stat_requests, ostream& output, t
     
 json::Node JsonReader::OutputStopInfo(int id, const tcat::StopInfo& stop_info) const {
     if (stop_info.status == tcat::StopInfoStatus::NOT_FOUND) {
-        return json::Dict {
-            {"request_id"s, id},
-            {"error_message"s, "not found"s}
-        };
+        return json::Builder{}.StartDict()
+            .Key("request_id"s).Value(id)
+            .Key("error_message"s).Value("not found"s)
+            .EndDict()
+            .Build();
     } else {
         json::Array routes;
         for (const auto& bus : stop_info.buses) {
             routes.push_back(json::Node(string(bus)));
         }
-        return json::Dict {
-            {"buses"s, routes},
-            {"request_id"s, id}
-        };
+        
+        return json::Builder{}.StartDict()
+            .Key("buses"s).Value(routes)
+            .Key("request_id"s).Value(id)
+            .EndDict()
+            .Build();
     }
 }
     
 json::Node JsonReader::OutputBusInfo(int id, const tcat::BusInfo& bus_info) const {
     if (bus_info.stops == 0) {
-        return json::Dict {
-            {"request_id"s, id},
-            {"error_message"s, "not found"s}
-        };
+        return json::Builder{}.StartDict()
+            .Key("request_id"s).Value(id)
+            .Key("error_message"s).Value("not found"s)
+            .EndDict()
+            .Build();
+        
     } else {
-        return json::Dict {
-            {"curvature"s, bus_info.curvature},
-            {"request_id"s, id},
-            {"route_length"s, bus_info.route_length},
-            {"stop_count"s, bus_info.stops},
-            {"unique_stop_count"s, bus_info.unique_stops}
-        };
+        return json::Builder{}.StartDict()
+            .Key("curvature"s).Value(bus_info.curvature)
+            .Key("request_id"s).Value(id)
+            .Key("route_length"s).Value(bus_info.route_length)
+            .Key("stop_count"s).Value(bus_info.stops)
+            .Key("unique_stop_count"s).Value(bus_info.unique_stops)
+            .EndDict()
+            .Build();
     }
 }
     
@@ -201,10 +205,11 @@ json::Node JsonReader::OutputMap(int id, tcat::TransportCatalogue& catalogue, ma
     svg::Document map = m_r.RenderMap(catalogue);
     ostringstream out;
     map.Render(out);
-    return json::Dict {
-        {"map"s, out.str()},
-        {"request_id"s, id}
-    };
+    return json::Builder{}.StartDict()
+        .Key("map"s).Value(out.str())
+        .Key("request_id"s).Value(id)
+        .EndDict()
+        .Build();
 }
     
 }

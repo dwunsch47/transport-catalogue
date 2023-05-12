@@ -10,8 +10,8 @@ namespace io {
 class JsonReader {
 public:
     JsonReader() = default;
-    void LoadBaseQueries(std::istream& input, std::ostream& /*output*/, tcat::TransportCatalogue& catalogue, map_r::MapRenderer& m_r);
-    void LoadStatQueries(std::istream& /*input*/, std::ostream& output, tcat::TransportCatalogue& catalogue, map_r::MapRenderer& m_r);
+    void LoadBaseQueries(std::istream& input, tcat::TransportCatalogue& catalogue, map_r::MapRenderer& m_r);
+    void LoadStatQueries(std::ostream& output, tcat::TransportCatalogue& catalogue, map_r::MapRenderer& m_r);
 private:
     void ParseBaseRequests(json::Array base_requests, tcat::TransportCatalogue& catalogue) const;
     void ParseRenderRequests(json::Dict render_requests, map_r::MapRenderer& m_r) const;
