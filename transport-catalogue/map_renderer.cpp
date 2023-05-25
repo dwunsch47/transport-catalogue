@@ -43,7 +43,7 @@ void BusRoute::Draw(svg::ObjectContainer& container) const {
 }
     
 BusName::BusName(svg::Point bus_name_pos, string bus_name, svg::Color color, const RenderSettings& settings) :
-    bus_name_pos_(bus_name_pos), bus_name_(bus_name), color_(color), settings_(settings) {}
+    bus_name_pos_(bus_name_pos), bus_name_(move(bus_name)), color_(color), settings_(settings) {}
 
 void BusName::Draw(svg::ObjectContainer& container) const {
     svg::Text busname;
@@ -79,7 +79,7 @@ void StopSymbol::Draw(svg::ObjectContainer& container) const {
 }
 
 StopName::StopName(svg::Point stop_name_pos, string stop_name, const RenderSettings& settings) :
-    stop_name_pos_(stop_name_pos), stop_name_(stop_name), settings_(settings) {}
+    stop_name_pos_(stop_name_pos), stop_name_(move(stop_name)), settings_(settings) {}
     
 void StopName::Draw(svg::ObjectContainer& container) const {
     svg::Text stopname;
@@ -102,46 +102,46 @@ void StopName::Draw(svg::ObjectContainer& container) const {
     container.Add(stopname);
 }
 
-void MapRenderer::LoadRenderSettings(const RenderSettings& settings) {
+void MapRenderer::LoadRenderSettings(RenderSettings settings) {
     settings_ = move(settings);
 }
   
-void MapRenderer::MakeBusRoutes(const map<string, tcat::RenderData>& bus_to_stop_coords, vector<unique_ptr<svg::Drawable>>& picture, const SphereProjector& sp) {
+void MapRenderer::MakeBusRoutes(const map<string, tcat::RenderData>& bus_to_stop_coords, vector<unique_ptr<svg::Drawable>>& picture) {
     for (const auto& [bus_name, render_data] : bus_to_stop_coords) {
         vector<svg::Point> points;
         for (const auto& stop : render_data.stop_coords) {
-            points.push_back(sp(stop));
+            points.push_back(sp_(stop));
         }
         picture.push_back(make_unique<BusRoute>(points, GetCurrentColor(), settings_));
     }
 }
     
 void MapRenderer::MakeBusNames(const map<string, tcat::RenderData>& bus_to_stop_coords,
-                              vector<unique_ptr<svg::Drawable>>& picture, const SphereProjector& sp) {
+                              vector<unique_ptr<svg::Drawable>>& picture) {
     ResetCurrentColor();
     for (const auto& [bus_name, render_data] : bus_to_stop_coords) {
-        svg::Point bus_name_pos = sp(render_data.stop_coords.at(0));
+        svg::Point bus_name_pos = sp_(render_data.stop_coords.at(0));
         svg::Color current_color = GetCurrentColor();
         picture.push_back(make_unique<BusName>(bus_name_pos, bus_name, current_color, settings_));
         if (!render_data.is_circular && 
             render_data.stop_coords.at(0) != render_data.stop_coords.at((render_data.stop_coords.size() + 1) / 2 - 1)) {
-            svg::Point bus_name_end_pos = sp(render_data.stop_coords.at((render_data.stop_coords.size() + 1) / 2 - 1)); 
+            svg::Point bus_name_end_pos = sp_(render_data.stop_coords.at((render_data.stop_coords.size() + 1) / 2 - 1)); 
             picture.push_back(make_unique<BusName>(bus_name_end_pos, bus_name, current_color, settings_));
         }
     }
 }
     
 void MapRenderer::MakeStopSymbols(const map<string, geo::Coordinates>& unique_stops, 
-                                 vector<unique_ptr<svg::Drawable>>& picture, const SphereProjector& sp) {
+                                 vector<unique_ptr<svg::Drawable>>& picture) {
     for (const auto& [_, coords] : unique_stops) {
-        picture.push_back(make_unique<StopSymbol>(sp(coords), settings_));
+        picture.push_back(make_unique<StopSymbol>(sp_(coords), settings_));
     }
 }
     
 void MapRenderer::MakeStopNames(const map<string, geo::Coordinates>& unique_stops,
-                               vector<unique_ptr<svg::Drawable>>& picture, const SphereProjector& sp) {
+                               vector<unique_ptr<svg::Drawable>>& picture) {
     for (const auto& [stop_name, coords] : unique_stops) {
-        picture.push_back(make_unique<StopName>(sp(coords), stop_name, settings_));
+        picture.push_back(make_unique<StopName>(sp_(coords), stop_name, settings_));
     }
 }
     
@@ -168,13 +168,14 @@ svg::Document MapRenderer::RenderMap(const tcat::TransportCatalogue& catalogue) 
     }
     SphereProjector sp {all_coords.begin(), all_coords.end(),
                        settings_.width, settings_.height, settings_.padding};
+    sp_ = move(sp);
     
     vector<unique_ptr<svg::Drawable>> picture;
     
-    MakeBusRoutes(bus_to_stop_coords, picture, sp);
-    MakeBusNames(bus_to_stop_coords, picture, sp);
-    MakeStopSymbols(unique_stops, picture, sp);
-    MakeStopNames(unique_stops, picture, sp);
+    MakeBusRoutes(bus_to_stop_coords, picture);
+    MakeBusNames(bus_to_stop_coords, picture);
+    MakeStopSymbols(unique_stops, picture);
+    MakeStopNames(unique_stops, picture);
     
     svg::Document doc;
     DrawPicture(picture, doc);

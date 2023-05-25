@@ -36,6 +36,8 @@ bool IsZero(double value);
 
 class SphereProjector {
 public:
+    SphereProjector() = default;
+    
     // points_begin и points_end задают начало и конец интервала элементов geo::Coordinates
     template <typename PointInputIt>
     SphereProjector(PointInputIt points_begin, PointInputIt points_end,
@@ -138,15 +140,17 @@ private:
 
 class MapRenderer {
 public:
-    void LoadRenderSettings(const RenderSettings& settings);
+    MapRenderer() = default;
+    
+    void LoadRenderSettings(RenderSettings settings);
     void MakeBusRoutes(const std::map<std::string, tcat::RenderData>& bus_to_stop_coords,
-                        std::vector<std::unique_ptr<svg::Drawable>>& picture, const SphereProjector& sp);
+                        std::vector<std::unique_ptr<svg::Drawable>>& picture);
     void MakeBusNames(const std::map<std::string, tcat::RenderData>& bus_to_stop_coords,
-                        std::vector<std::unique_ptr<svg::Drawable>>& picture, const SphereProjector& sp);
+                        std::vector<std::unique_ptr<svg::Drawable>>& picture);
     void MakeStopSymbols(const std::map<std::string, geo::Coordinates>& unique_stops, 
-                        std::vector<std::unique_ptr<svg::Drawable>>& picture, const SphereProjector& sp);
+                        std::vector<std::unique_ptr<svg::Drawable>>& picture);
     void MakeStopNames(const std::map<std::string, geo::Coordinates>& unique_stops, 
-                        std::vector<std::unique_ptr<svg::Drawable>>& picture, const SphereProjector& sp);
+                        std::vector<std::unique_ptr<svg::Drawable>>& picture);
     
     svg::Document RenderMap(const tcat::TransportCatalogue& catalogue);
     
@@ -170,5 +174,6 @@ private:
     const svg::Color GetCurrentColor();
     void ResetCurrentColor();
     RenderSettings settings_;
+    SphereProjector sp_;
 };
 }
