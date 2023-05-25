@@ -13,31 +13,34 @@
 using namespace std;
 
 namespace io {
-void JsonReader::LoadBaseQueries(istream& input, tcat::TransportCatalogue& catalogue, map_r::MapRenderer& m_r) {
+JsonReader::JsonReader(tcat::TransportCatalogue& catalogue, map_r::MapRenderer& map_renderer) : catalogue_(catalogue), map_renderer_(map_renderer) {}
+    
+    
+void JsonReader::LoadBaseQueries(istream& input) {
     doc_ = json::Load(input);
     const json::Dict dict = doc_.GetRoot().AsDict();
     
     const auto base_reqs = dict.find("base_requests"s);
     if (base_reqs != dict.end()) {
-        ParseBaseRequests(base_reqs->second.AsArray(), catalogue);
+        ParseBaseRequests(base_reqs->second.AsArray());
     }
     
     const auto render_reqs = dict.find("render_settings"s);
     if (render_reqs != dict.end()) {
-        ParseRenderRequests(render_reqs->second.AsDict(), m_r);
+        ParseRenderRequests(render_reqs->second.AsDict());
     }
 }
     
-void JsonReader::LoadStatQueries(ostream& output, tcat::TransportCatalogue& catalogue, map_r::MapRenderer& m_r) {
+void JsonReader::LoadStatQueries(ostream& output) {
     const json::Dict dict = doc_.GetRoot().AsDict();
     
     const auto stat_reqs = dict.find("stat_requests"s);
     if (stat_reqs != dict.end()) {
-        ParseStatRequests(stat_reqs->second.AsArray(), output, catalogue, m_r);
+        ParseStatRequests(stat_reqs->second.AsArray(), output);
     } 
 }
     
-void JsonReader::ParseBaseRequests(json::Array base_requests, tcat::TransportCatalogue& catalogue) const {
+void JsonReader::ParseBaseRequests(json::Array base_requests) const {
     vector<tcat::Stop> stops;
     vector<tcat::PreBus> buses;
     vector<tcat::StopDistances> stop_distances;
@@ -51,14 +54,14 @@ void JsonReader::ParseBaseRequests(json::Array base_requests, tcat::TransportCat
         }
     }
     for (const auto& stop : stops) {
-        catalogue.AddStop(stop);
+        catalogue_.AddStop(stop);
     }
     
     for (const auto& stop_to_distances : stop_distances) {
-        catalogue.AddDistanceBetweenStops(stop_to_distances);
+        catalogue_.AddDistanceBetweenStops(stop_to_distances);
     }
     for (const auto& pre_bus : buses) {
-        catalogue.AddBus(pre_bus);
+        catalogue_.AddBus(pre_bus);
     }
 }
     
@@ -97,7 +100,7 @@ tcat::StopDistances JsonReader::ParseStopDistances(const json::Dict& dict) const
     return stop_with_dists;
 }
     
-void JsonReader::ParseRenderRequests(json::Dict render_requests, map_r::MapRenderer& m_r) const {
+void JsonReader::ParseRenderRequests(json::Dict render_requests) const {
     vector<svg::Color> complete_color_palette;
     for (const json::Node& color : render_requests.at("color_palette"s).AsArray()) {
         complete_color_palette.push_back(ParseColorData(color));
@@ -117,7 +120,7 @@ void JsonReader::ParseRenderRequests(json::Dict render_requests, map_r::MapRende
         render_requests.at("underlayer_width"s).AsDouble(),
         move(complete_color_palette)
     };
-    m_r.LoadRenderSettings(render_data);
+    map_renderer_.LoadRenderSettings(render_data);
 }
    
 svg::Color JsonReader::ParseColorData(const json::Node& color) const {
@@ -143,18 +146,18 @@ svg::Color JsonReader::ParseColorData(const json::Node& color) const {
     return svg::Color();
 }
 
-void JsonReader::ParseStatRequests(json::Array stat_requests, ostream& output, tcat::TransportCatalogue& catalogue, map_r::MapRenderer& m_r) const {
+void JsonReader::ParseStatRequests(json::Array stat_requests, ostream& output) const {
     json::Array queries;
     for (const auto& request : stat_requests) {
         json::Dict stat_root = request.AsDict();
         int id = stat_root.at("id"s).AsInt();
         string type = stat_root.at("type"s).AsString();
         if (type == "Stop"s) {
-            queries.push_back(OutputStopInfo(id, catalogue.GetStopInfo(stat_root.at("name"s).AsString())));
+            queries.push_back(OutputStopInfo(id, catalogue_.GetStopInfo(stat_root.at("name"s).AsString())));
         } else if (type == "Bus"s) {
-            queries.push_back(OutputBusInfo(id, catalogue.GetBusInfo(stat_root.at("name"s).AsString())));
+            queries.push_back(OutputBusInfo(id, catalogue_.GetBusInfo(stat_root.at("name"s).AsString())));
         } else if (type == "Map"s) {
-            queries.push_back(OutputMap(id, catalogue, m_r));
+            queries.push_back(OutputMap(id));
         }
     }
     json::Print(json::Document{queries}, output);
@@ -201,8 +204,8 @@ json::Node JsonReader::OutputBusInfo(int id, const tcat::BusInfo& bus_info) cons
     }
 }
     
-json::Node JsonReader::OutputMap(int id, tcat::TransportCatalogue& catalogue, map_r::MapRenderer& m_r) const {
-    svg::Document map = m_r.RenderMap(catalogue);
+json::Node JsonReader::OutputMap(int id) const {
+    svg::Document map = map_renderer_.RenderMap(catalogue_);
     ostringstream out;
     map.Render(out);
     return json::Builder{}.StartDict()

@@ -9,7 +9,7 @@ using namespace std;
 int main() {
     tcat::TransportCatalogue catalogue;
     map_r::MapRenderer map_renderer;
-    io::JsonReader reader;
-    reader.LoadBaseQueries(cin, catalogue, map_renderer);
-    reader.LoadStatQueries(cout, catalogue, map_renderer);
+    io::JsonReader reader(catalogue, map_renderer);
+    reader.LoadBaseQueries(cin);
+    reader.LoadStatQueries(cout);
 }
