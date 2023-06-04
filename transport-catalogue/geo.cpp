@@ -23,4 +23,4 @@ size_t CoordinatesHasher::operator()(const Coordinates& coords) const {
     return lat_hash * 37 + lng_hash;
 }
     
-}  // namespace geo
+}

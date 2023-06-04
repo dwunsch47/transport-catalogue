@@ -98,6 +98,29 @@ map<string, RenderData> TransportCatalogue::GetAllRoutes() const {
     return result;
 }
     
+size_t TransportCatalogue::GetAllStopsCount() const {
+    return stops_.size();
+}
+    
+const unordered_map<string_view, Stop*>& TransportCatalogue::GetAllStops() const {
+    return stopname_to_stop_;
+}
+    
+const std::unordered_map<std::string_view, Bus*>& TransportCatalogue::GetAllBuses() const {
+    return busname_to_bus_;
+}
+
+    
+size_t TransportCatalogue::GetDistance(Stop* from, Stop* to) const {
+    if (distance_between_stops_.find({from, to}) == distance_between_stops_.end()) {
+        if (distance_between_stops_.find({to, from}) == distance_between_stops_.end()) {
+            return 0;
+        }
+        return distance_between_stops_.at({to, from});
+    }
+    return distance_between_stops_.at({from, to});
+}
+    
 int TransportCatalogue::CalculateStops(const Bus* bus_ptr) const {
         return bus_ptr->stops.size();
 }

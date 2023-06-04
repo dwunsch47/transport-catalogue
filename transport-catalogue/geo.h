@@ -22,4 +22,4 @@ private:
     std::hash<double> d_hasher_;
 };
 
-}  // namespace geo
+}

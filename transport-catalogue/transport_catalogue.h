@@ -32,6 +32,14 @@ public:
     
     void AddDistanceBetweenStops(const StopDistances& stop_distances);
     
+    size_t GetAllStopsCount() const;
+    
+    const std::unordered_map<std::string_view, Stop*>& GetAllStops() const;
+    
+    const std::unordered_map<std::string_view, Bus*>& GetAllBuses() const;
+    
+    size_t GetDistance(Stop* from, Stop* to) const;
+    
 private:
     std::deque<Stop> stops_;
     std::deque<Bus> buses_;

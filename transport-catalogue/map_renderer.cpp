@@ -102,7 +102,7 @@ void StopName::Draw(svg::ObjectContainer& container) const {
     container.Add(stopname);
 }
 
-void MapRenderer::LoadRenderSettings(RenderSettings settings) {
+void MapRenderer::LoadSettings(RenderSettings settings) {
     settings_ = move(settings);
 }
   
@@ -157,7 +157,7 @@ void MapRenderer::ResetCurrentColor() {
 }
     
 svg::Document MapRenderer::RenderMap(const tcat::TransportCatalogue& catalogue) {
-    map<string, tcat::RenderData> bus_to_stop_coords = catalogue.GetAllRoutes();
+    map<string, tcat::RenderData> bus_to_stop_coords = move(catalogue.GetAllRoutes());
     unordered_set<geo::Coordinates, geo::CoordinatesHasher> all_coords;
     map<string, geo::Coordinates> unique_stops;
     for (const auto& [bus_name, render_data] : bus_to_stop_coords) {
