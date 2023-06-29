@@ -55,8 +55,7 @@ void JsonReader::LoadStatQueries(istream& input, ostream& output) {
     const auto serialization_reqs = dict.find("serialization_settings"s);
     if (serialization_reqs != dict.end()) {
         const string serialization_filename = ParseSerializationRequests(serialization_reqs->second.AsDict());
-	//string serialization_filename = "transport_catalogue.db"s;
-	serialization::Serializer serializer(catalogue_, nullptr, map_renderer_);
+        serialization::Serializer serializer(catalogue_, nullptr, map_renderer_);
         serializer.DeserializeFromFile(serialization_filename);
         
         const auto stat_reqs = dict.find("stat_requests"s);
@@ -103,7 +102,7 @@ tcat::PreBus JsonReader::ParsePreBus(const json::Dict& dict) const {
     tcat::PreBus pre_bus;
     vector<string> pre_stops;
     pre_bus.name = dict.at("name"s).AsString();
-    pre_bus.is_circular = (dict.at("is_roundtrip"s).AsBool() ? true : false);
+    pre_bus.is_circular = dict.at("is_roundtrip"s).AsBool();
     for (const auto& stop : dict.at("stops"s).AsArray()) {
         pre_stops.push_back(stop.AsString());
     }
