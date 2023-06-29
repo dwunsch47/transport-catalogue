@@ -5,6 +5,7 @@
 #include "map_renderer.h"
 #include "transport_catalogue.h"
 #include "transport_router.h"
+#include "serialization.h"
 
 #include <iostream>
 #include <vector>
@@ -27,7 +28,7 @@ void JsonReader::LoadBaseQueries(istream& input) {
         ParseBaseRequests(base_reqs->second.AsArray());
     }
     
-    tr_ = make_unique<router::TransportRouter>(catalogue_);
+    tr_ = make_shared<router::TransportRouter>(catalogue_);
     
     const auto render_reqs = dict.find("render_settings"s);
     if (render_reqs != dict.end()) {
@@ -38,15 +39,32 @@ void JsonReader::LoadBaseQueries(istream& input) {
     if (routing_reqs != dict.end()) {
         ParseRoutingRequests(routing_reqs->second.AsDict());
     }
+    
+    const auto serialization_reqs = dict.find("serialization_settings"s);
+    if (serialization_reqs != dict.end()) {
+        const string serialization_filename = ParseSerializationRequests(serialization_reqs->second.AsDict());
+        serialization::Serializer serializer(catalogue_, tr_, map_renderer_);
+        serializer.SerializeToFile(serialization_filename);
+    }
 }
     
-void JsonReader::LoadStatQueries(ostream& output) {
-    const json::Dict dict = doc_.GetRoot().AsDict();
+void JsonReader::LoadStatQueries(istream& input, ostream& output) {
+    doc_ = json::Load(input);
+    const json::Dict& dict = doc_.GetRoot().AsDict();
     
-    const auto stat_reqs = dict.find("stat_requests"s);
-    if (stat_reqs != dict.end()) {
-        ParseStatRequests(stat_reqs->second.AsArray(), output);
-    } 
+    const auto serialization_reqs = dict.find("serialization_settings"s);
+    if (serialization_reqs != dict.end()) {
+        const string serialization_filename = ParseSerializationRequests(serialization_reqs->second.AsDict());
+	//string serialization_filename = "transport_catalogue.db"s;
+	serialization::Serializer serializer(catalogue_, nullptr, map_renderer_);
+        serializer.DeserializeFromFile(serialization_filename);
+        
+        const auto stat_reqs = dict.find("stat_requests"s);
+        if (stat_reqs != dict.end()) {
+            ParseStatRequests(stat_reqs->second.AsArray(), output);
+        }
+        
+    }
 }
     
 void JsonReader::ParseBaseRequests(const json::Array& base_requests) const {
@@ -85,16 +103,9 @@ tcat::PreBus JsonReader::ParsePreBus(const json::Dict& dict) const {
     tcat::PreBus pre_bus;
     vector<string> pre_stops;
     pre_bus.name = dict.at("name"s).AsString();
-    pre_bus.type = (dict.at("is_roundtrip"s).AsBool() ? "circular"s : "usual"s);
+    pre_bus.is_circular = (dict.at("is_roundtrip"s).AsBool() ? true : false);
     for (const auto& stop : dict.at("stops"s).AsArray()) {
         pre_stops.push_back(stop.AsString());
-    }
-    if (pre_bus.type == "usual"s) {
-        vector<string> pre(pre_stops.begin(), pre_stops.end() - 1);
-        reverse(pre.begin(), pre.end());
-        for (const auto& stop : pre) {
-            pre_stops.push_back(stop);
-        }
     }
     pre_bus.stops = move(pre_stops);
     return pre_bus;
@@ -161,6 +172,10 @@ void JsonReader::ParseRoutingRequests(const json::Dict& routing_requests) const 
         routing_requests.at("bus_velocity"s).AsDouble()
     };
     tr_->LoadSettings(router_settings);
+}
+    
+string JsonReader::ParseSerializationRequests(const json::Dict& serialization_requests) const {
+    return serialization_requests.at("file"s).AsString();
 }
 
 void JsonReader::ParseStatRequests(const json::Array& stat_requests, ostream& output) const {

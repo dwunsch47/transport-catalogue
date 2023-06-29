@@ -32,11 +32,15 @@ public:
     
     void AddDistanceBetweenStops(const StopDistances& stop_distances);
     
+    void AddDistance(Stop* from, Stop* to, size_t distance);
+    
     size_t GetAllStopsCount() const;
     
     const std::unordered_map<std::string_view, Stop*>& GetAllStops() const;
     
     const std::unordered_map<std::string_view, Bus*>& GetAllBuses() const;
+    
+    const std::unordered_map<std::pair<Stop*, Stop*>, size_t, detail::StopPairHasher>& GetAllDistances() const;
     
     size_t GetDistance(Stop* from, Stop* to) const;
     

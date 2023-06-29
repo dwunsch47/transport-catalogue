@@ -14,12 +14,15 @@ class JsonReader {
 public:
     JsonReader(tcat::TransportCatalogue& catalogue, map_r::MapRenderer& map_renderer_);
     void LoadBaseQueries(std::istream& input);
-    void LoadStatQueries(std::ostream& output);
+    void LoadStatQueries(std::istream& input, std::ostream& output);
 private:
     void ParseBaseRequests(const json::Array& base_requests) const;
     void ParseRenderRequests(const json::Dict& render_requests) const;
     void ParseRoutingRequests(const json::Dict& routing_requests) const;
+    std::string ParseSerializationRequests(const json::Dict& serialization_requests) const;
+    
     void ParseStatRequests(const json::Array& stat_requests, std::ostream& output) const;
+    
     tcat::Stop ParseStop(const json::Dict& dict) const;
     tcat::PreBus ParsePreBus(const json::Dict& dict) const;
     tcat::StopDistances ParseStopDistances(const json::Dict& dict) const;
@@ -33,6 +36,6 @@ private:
     json::Document doc_{nullptr};
     tcat::TransportCatalogue& catalogue_;
     map_r::MapRenderer& map_renderer_;
-    std::unique_ptr<router::TransportRouter> tr_ = nullptr;
+    std::shared_ptr<router::TransportRouter> tr_ = nullptr;
 };
 }

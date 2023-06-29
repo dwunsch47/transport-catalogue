@@ -18,7 +18,7 @@ struct Stop {
 struct PreBus {
     std::string name;
     std::vector<std::string> stops;
-    std::string type;
+    bool is_circular;
 };
     
 struct Bus {
@@ -28,7 +28,7 @@ struct Bus {
     int unique_stops = 0;
     int route_length = 0;
     double curvature = 0;
-    std::string type;
+    bool is_circular;
 };
     
 struct BusInfo {

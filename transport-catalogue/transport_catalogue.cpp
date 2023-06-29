@@ -32,12 +32,21 @@ Stop* TransportCatalogue::FindStop(string_view stop_name) const {
 void TransportCatalogue::AddBus(const PreBus& pre_bus) {
     Bus bus;
     bus.name = move(pre_bus.name);
-    bus.type = move(pre_bus.type);
+    bus.is_circular = pre_bus.is_circular;
     
     for (const std::string_view stop : pre_bus.stops) {
         Stop* stop_ptr = FindStop(stop);
         bus.stops.push_back(stop_ptr);
         stop_to_buses_[stop_ptr].insert(bus.name);
+    }
+    if (!pre_bus.is_circular) {
+        vector<string> pre(pre_bus.stops.begin(), pre_bus.stops.end() - 1);
+        reverse(pre.begin(), pre.end());
+        for (const auto& stop : pre) {
+            Stop* stop_ptr = FindStop(stop);
+            bus.stops.push_back(stop_ptr);
+            stop_to_buses_[stop_ptr].insert(bus.name);
+        }
     }
     buses_.push_back(move(bus));
     Bus* bus_ptr = &buses_.back();
@@ -78,8 +87,13 @@ void TransportCatalogue::AddDistanceBetweenStops(const StopDistances& stop_dista
     for (const auto& [name, dist] : stop_distances.stop_to_distance) {
         Stop* current_ptr = FindStop(name);
         auto pair = make_pair(primary_ptr, current_ptr);
-        distance_between_stops_.emplace(move(pair), dist);
+        distance_between_stops_.emplace(pair, dist);
     }
+}
+    
+void TransportCatalogue::AddDistance(Stop* from, Stop* to, size_t distance) {
+    auto pair = make_pair(from, to);
+    distance_between_stops_.emplace(pair, distance);
 }
     
 map<string, RenderData> TransportCatalogue::GetAllRoutes() const {
@@ -91,7 +105,7 @@ map<string, RenderData> TransportCatalogue::GetAllRoutes() const {
                 render_data.stop_coords.push_back(stop->coordinates);
                 render_data.stop_names.push_back(stop->name);
             }
-            render_data.is_circular = (bus.type == "circular" ? true : false);
+            render_data.is_circular = bus.is_circular;
             result.emplace(bus.name, render_data);
         }
     }
@@ -106,8 +120,12 @@ const unordered_map<string_view, Stop*>& TransportCatalogue::GetAllStops() const
     return stopname_to_stop_;
 }
     
-const std::unordered_map<std::string_view, Bus*>& TransportCatalogue::GetAllBuses() const {
+const unordered_map<string_view, Bus*>& TransportCatalogue::GetAllBuses() const {
     return busname_to_bus_;
+}
+    
+const unordered_map<pair<Stop*, Stop*>, size_t, detail::StopPairHasher>& TransportCatalogue::GetAllDistances() const {
+    return distance_between_stops_;
 }
 
     
