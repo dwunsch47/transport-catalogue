@@ -105,6 +105,10 @@ void StopName::Draw(svg::ObjectContainer& container) const {
 void MapRenderer::LoadSettings(RenderSettings settings) {
     settings_ = move(settings);
 }
+    
+const RenderSettings& MapRenderer::GetSettings() const {
+    return settings_;
+}
   
 void MapRenderer::MakeBusRoutes(const map<string, tcat::RenderData>& bus_to_stop_coords, vector<unique_ptr<svg::Drawable>>& picture) {
     for (const auto& [bus_name, render_data] : bus_to_stop_coords) {

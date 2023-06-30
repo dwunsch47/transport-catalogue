@@ -143,6 +143,7 @@ public:
     MapRenderer() = default;
     
     void LoadSettings(RenderSettings settings);
+    const RenderSettings& GetSettings() const;
     void MakeBusRoutes(const std::map<std::string, tcat::RenderData>& bus_to_stop_coords,
                         std::vector<std::unique_ptr<svg::Drawable>>& picture);
     void MakeBusNames(const std::map<std::string, tcat::RenderData>& bus_to_stop_coords,

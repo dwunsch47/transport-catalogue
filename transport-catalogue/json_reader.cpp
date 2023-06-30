@@ -55,7 +55,8 @@ void JsonReader::LoadStatQueries(istream& input, ostream& output) {
     const auto serialization_reqs = dict.find("serialization_settings"s);
     if (serialization_reqs != dict.end()) {
         const string serialization_filename = ParseSerializationRequests(serialization_reqs->second.AsDict());
-        serialization::Serializer serializer(catalogue_, nullptr, map_renderer_);
+	//string serialization_filename = "transport_catalogue.db"s;
+	serialization::Serializer serializer(catalogue_, nullptr, map_renderer_);
         serializer.DeserializeFromFile(serialization_filename);
         
         const auto stat_reqs = dict.find("stat_requests"s);

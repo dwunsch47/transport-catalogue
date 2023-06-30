@@ -4,6 +4,7 @@
 #include "transport_router.h"
 #include "map_renderer.h"
 #include "transport_catalogue.pb.h"
+#include "svg.h"
 
 #include <string>
 #include <memory>
@@ -28,12 +29,15 @@ private:
     void SerializeStops();
     void SerializeBuses();
     void SerializeDistances();
-    //void SerializeRenderSettings();
+    void SerializeRenderSettings();
     //void SerializeRouterSettings();
     
     void DeserializeCatalogue();
-    //void DeserializeRenderSettings();
+    void DeserializeRenderSettings();
     //void DeserializeRouterSettings();
+    
+    proto_serialization::Color SerializeColor(const svg::Color& color) const;
+    svg::Color DeserializeColor(const proto_serialization::Color& proto_color) const;
 };
     
 } // namespace serialization
