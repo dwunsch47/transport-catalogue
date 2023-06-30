@@ -31,18 +31,26 @@ struct RouteData {
 class TransportRouter {
 public:
     TransportRouter(tcat::TransportCatalogue& catalogue);
+    TransportRouter(tcat::TransportCatalogue& catalogue, graph::DirectedWeightedGraph<double> graph
+                   , std::unordered_map<std::string, size_t> wait_vertexes
+                   , std::unordered_map<std::string, size_t> travel_vertexes);
     
     void LoadSettings(RouterSettings settings);
+    const RouterSettings& GetSettings() const;
     
-    RouteData CalculateRoute(std::string_view from, std::string_view to);
+    const graph::DirectedWeightedGraph<double>& GetGraph() const;
+    const std::unordered_map<std::string, size_t>& GetWaitVertexes() const;
+    const std::unordered_map<std::string, size_t>& GetTravelVertexes() const;
+    
+    RouteData CalculateRoute(std::string from, std::string to);
     
     
 private:
     tcat::TransportCatalogue& tc_;
     RouterSettings settings_;
     
-    std::unordered_map<std::string_view, size_t> wait_vertexes_;
-    std::unordered_map<std::string_view, size_t> travel_vertexes_;
+    std::unordered_map<std::string, size_t> wait_vertexes_;
+    std::unordered_map<std::string, size_t> travel_vertexes_;
     
     graph::DirectedWeightedGraph<double> graph_;
     std::unique_ptr<graph::Router<double>> router_ = nullptr;

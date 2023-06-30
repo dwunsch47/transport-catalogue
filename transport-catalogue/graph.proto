@@ -1,0 +1,26 @@
+syntax = "proto3";
+
+package proto_serialization;
+
+message Edge {
+    enum EdgeType {
+        WAIT = 0;
+        TRAVEL = 1;
+    }
+    
+    uint32 from = 1;
+    uint32 to = 2;
+    string name = 3;
+    EdgeType type = 4;
+    int32 span_count = 5;
+    double weight = 6;
+}
+
+message IncidenceList {
+    repeated uint32 edge_ids = 1;
+}
+
+message Graph {
+    repeated Edge edges = 1;
+    repeated IncidenceList incidence_lists = 2;
+}

@@ -1,13 +1,16 @@
 #include "serialization.h"
 #include "transport_catalogue.pb.h"
+#include "transport_router.pb.h"
 #include "map_renderer.h"
 #include "transport_catalogue.h"
 #include "transport_router.h"
+#include "graph.h"
 
 #include <string>
 #include <fstream>
 #include <algorithm>
 #include <vector>
+#include <memory>
 
 using namespace std;
 
@@ -19,22 +22,27 @@ Serializer::Serializer(tcat::TransportCatalogue& catalogue, std::shared_ptr<rout
 void Serializer::SerializeToFile(const string& file) {
     ofstream ofs(file, ios::binary);
     proto_tc_.Clear();
+    
     SerializeStops();
     SerializeBuses();
     SerializeDistances();
     SerializeRenderSettings();
-    //SerializeRouterSettings();
+    SerializeRouterSettings();
+    SerializeGraph();
+    SerializeTransportRouter();
     
     proto_tc_.SerializeToOstream(&ofs);
 }
     
-void Serializer::DeserializeFromFile(const string& file) {
+shared_ptr<router::TransportRouter> Serializer::DeserializeFromFile(const string& file) {
     ifstream ifs(file, ios::binary);
     proto_tc_.Clear();
     proto_tc_.ParseFromIstream(&ifs);
     
     DeserializeCatalogue();
+    DeserializeGraph();
     DeserializeRenderSettings();
+    return DeserializeTransportRouter();
 }
     
 void Serializer::SerializeStops() {
@@ -138,6 +146,48 @@ proto_serialization::Color Serializer::SerializeColor(const svg::Color& color) c
     return result;
 }
     
+void Serializer::SerializeRouterSettings() {
+    proto_serialization::RouterSettings proto_settings;
+    router::RouterSettings settings = tr_ptr_->GetSettings();
+    
+    proto_settings.set_bus_wait_time(settings.bus_wait_time);
+    proto_settings.set_bus_velocity(settings.bus_velocity);
+    *proto_tc_.mutable_router_settings() = proto_settings;
+}
+    
+void Serializer::SerializeGraph() {
+    proto_serialization::Graph proto_graph;
+    vector<graph::Edge<double>> edges = tr_ptr_->GetGraph().GetAllEdges();
+    vector<vector<size_t>> incidence_lists = tr_ptr_->GetGraph().GetAllIncidenceLists();
+    for (const auto& edge : edges) {
+        proto_serialization::Edge proto_edge;
+        proto_edge.set_from(edge.from);
+        proto_edge.set_to(edge.to);
+	proto_edge.set_name(edge.name);
+        proto_edge.set_type(edge.type == graph::EdgeType::WAIT ? proto_serialization::Edge::WAIT : proto_serialization::Edge::TRAVEL);
+        proto_edge.set_span_count(edge.span_count);
+        proto_edge.set_weight(edge.weight);
+        *proto_graph.add_edges() = proto_edge;
+    }
+    for (const auto& incidence_list : incidence_lists) {
+        proto_serialization::IncidenceList list;
+        for (const auto& id : incidence_list) {
+            list.add_edge_ids(id);
+        }
+        *proto_graph.add_incidence_lists() = list;
+    }
+    *proto_tc_.mutable_transport_router()->mutable_graph() = proto_graph;
+}
+    
+void Serializer::SerializeTransportRouter() {
+    for (const auto& [name, id] : tr_ptr_->GetWaitVertexes()) {
+        (*proto_tc_.mutable_transport_router()->mutable_wait_vertexes())[name] = id;
+    }
+    for (const auto& [name, id] : tr_ptr_->GetTravelVertexes()) {
+        (*proto_tc_.mutable_transport_router()->mutable_travel_vertexes())[name] = id;
+    }
+}
+    
 void Serializer::DeserializeCatalogue() {
     for (const auto& stop : proto_tc_.stops()) {
         tc_.AddStop({stop.name(), {stop.coords().lat(), stop.coords().lng()}});
@@ -202,6 +252,59 @@ svg::Color Serializer::DeserializeColor(const proto_serialization::Color& proto_
     } else {
         return {proto_color.color()};
     }
+}
+    
+router::RouterSettings Serializer::DeserializeRouterSettings() {
+    router::RouterSettings settings;
+    proto_serialization::RouterSettings proto_settings = proto_tc_.router_settings();
+    
+    settings.bus_wait_time = proto_settings.bus_wait_time();
+    settings.bus_velocity = proto_settings.bus_velocity();
+    return settings;
+}
+    
+graph::DirectedWeightedGraph<double> Serializer::DeserializeGraph() {
+    vector<graph::Edge<double>> edges(proto_tc_.transport_router().graph().edges_size());
+    vector<vector<graph::EdgeId>> incidence_lists(proto_tc_.transport_router().graph().incidence_lists_size());
+    
+    for (const auto& proto_edge : proto_tc_.transport_router().graph().edges()) {
+        graph::Edge<double> edge {
+            static_cast<graph::VertexId>(proto_edge.from()),
+            static_cast<graph::VertexId>(proto_edge.to()),
+	    proto_edge.name(),
+            (proto_edge.type() == proto_serialization::Edge::WAIT ? graph::EdgeType::WAIT : graph::EdgeType::TRAVEL),
+            proto_edge.span_count(),
+            proto_edge.weight()
+        };
+        edges.push_back(edge);
+    }
+    
+    for (const auto& proto_incidence_list : proto_tc_.transport_router().graph().incidence_lists()) {
+        vector<graph::EdgeId> tmp_incidence_list;
+        for (const auto& id : proto_incidence_list.edge_ids()) {
+            tmp_incidence_list.push_back(static_cast<size_t>(id));
+        }
+        incidence_lists.push_back(tmp_incidence_list);
+    }
+    return graph::DirectedWeightedGraph<double>(edges, incidence_lists);
+}
+    
+shared_ptr<router::TransportRouter> Serializer::DeserializeTransportRouter() {
+    graph::DirectedWeightedGraph<double> graph = DeserializeGraph();
+    unordered_map<string, size_t> wait_vertexes(proto_tc_.transport_router().wait_vertexes().begin(), proto_tc_.transport_router().wait_vertexes().end());
+    unordered_map<string, size_t> travel_vertexes(proto_tc_.transport_router().travel_vertexes().begin(), proto_tc_.transport_router().travel_vertexes().end());
+    /*unordered_map<string, size_t> wait_vertexes;
+    for (const auto& [name, id] : proto_tc_.transport_router().wait_vertexes()) {
+    	wait_vertexes[name] = id;
+    }
+    unordered_map<string, size_t> travel_vertexes;
+    for (const auto& [name, id] : proto_tc_.transport_router().wait_vertexes()) {
+    	travel_vertexes[name] = id;
+    }*/
+
+    shared_ptr<router::TransportRouter> tr = make_shared<router::TransportRouter>(tc_, graph, wait_vertexes, travel_vertexes);
+    tr->LoadSettings(DeserializeRouterSettings());
+    return tr;
 }
     
     

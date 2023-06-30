@@ -12,13 +12,37 @@ using namespace std;
 namespace router {
     
     
-TransportRouter::TransportRouter(tcat::TransportCatalogue& tc) : tc_(tc), graph_(tc.GetAllStopsCount() * 2) {}
-      
+TransportRouter::TransportRouter(tcat::TransportCatalogue& tc) : tc_(tc), graph_(tc.GetAllStopsCount() * 2) {
+	BuildGraph();
+}
+    
+TransportRouter::TransportRouter(tcat::TransportCatalogue& tc, graph::DirectedWeightedGraph<double> graph
+                   , std::unordered_map<std::string, size_t> wait_vertexes
+                   , std::unordered_map<std::string, size_t> travel_vertexes) 
+    : tc_(tc), graph_(graph), wait_vertexes_(wait_vertexes), travel_vertexes_(travel_vertexes) {
+        router_ = make_unique<graph::Router<double>>(graph);
+    }
+    
 void TransportRouter::LoadSettings(RouterSettings settings) {
     settings_ = move(settings);
 }
     
-RouteData TransportRouter::CalculateRoute(string_view from, string_view to) {
+const RouterSettings& TransportRouter::GetSettings() const {
+    return settings_;
+}
+    
+const graph::DirectedWeightedGraph<double>& TransportRouter::GetGraph() const {
+    return graph_;
+}
+    
+const unordered_map<std::string, size_t>& TransportRouter::GetWaitVertexes() const {
+    return wait_vertexes_;
+}
+const unordered_map<std::string, size_t>& TransportRouter::GetTravelVertexes() const {
+    return travel_vertexes_;
+}
+    
+RouteData TransportRouter::CalculateRoute(string from, string to) {
     if (!router_) {
         BuildGraph();
     }
@@ -31,7 +55,8 @@ RouteData TransportRouter::CalculateRoute(string_view from, string_view to) {
             auto edge = graph_.GetEdge(id);
             result.total_time += edge.weight;
             
-            result.items.emplace_back(RouteInfo{edge.name,
+            result.items.emplace_back(RouteInfo{
+			    	     edge.name,
                                      (edge.type == graph::EdgeType::TRAVEL) ? edge.span_count : 0,
                                       edge.weight,
                                       edge.type});
@@ -43,14 +68,15 @@ RouteData TransportRouter::CalculateRoute(string_view from, string_view to) {
 void TransportRouter::BuildGraph() {
     size_t vertex_id = 0;
     
-    for (const auto& [name, _] : tc_.GetAllStops()) {
+    for (const auto& [orig_name, _] : tc_.GetAllStops()) {
+	string name = string(orig_name);
         wait_vertexes_[name] = vertex_id++;
         travel_vertexes_[name] = vertex_id++;
             
         graph_.AddEdge({
             wait_vertexes_.at(name),
             travel_vertexes_.at(name),
-            string(name),
+	    name,
             graph::EdgeType::WAIT,
             0,
             settings_.bus_wait_time * 1.0
@@ -68,7 +94,7 @@ void TransportRouter::BuildGraph() {
                 graph_.AddEdge({
                     travel_vertexes_.at(bus_ptr->stops.at(it_from)->name),
                     wait_vertexes_.at(bus_ptr->stops.at(it_to)->name),
-                    bus_ptr->name,
+		    bus_ptr->name,
                     graph::EdgeType::TRAVEL,
                     ++span_count,
                     road_length / (settings_.bus_velocity * 1000. / 60.)

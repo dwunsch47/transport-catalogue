@@ -1,0 +1,16 @@
+syntax = "proto3";
+
+package proto_serialization;
+
+import "graph.proto";
+
+message RouterSettings {
+    int32 bus_wait_time = 1;
+    double bus_velocity = 2;
+}
+
+message TransportRouter {
+    Graph graph = 1;
+    map<string, uint32> wait_vertexes = 2;
+    map<string, uint32> travel_vertexes = 3;
+}
