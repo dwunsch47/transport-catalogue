@@ -57,6 +57,8 @@ void JsonReader::LoadStatQueries(istream& input, ostream& output) {
         const string serialization_filename = ParseSerializationRequests(serialization_reqs->second.AsDict());
 	serialization::Serializer serializer(catalogue_, nullptr, map_renderer_);
         tr_ = serializer.DeserializeFromFile(serialization_filename);
+
+	//tr_ = make_shared<router::TransportRouter>(catalogue_);
         
         const auto stat_reqs = dict.find("stat_requests"s);
         if (stat_reqs != dict.end()) {
@@ -252,10 +254,10 @@ json::Node JsonReader::OutputMap(int id) const {
         .Build();
 }
     
-json::Node JsonReader::OutputRoute(int id, string_view from_stop, string_view to_stop) const {
-    string from = string(from_stop);
-    string to = string(to_stop);
-    auto route = tr_->CalculateRoute(from, to);
+json::Node JsonReader::OutputRoute(int id, const string& from_stop, const string& to_stop) const {
+    //string from = string(from_stop);
+    //string to = string(to_stop);
+    auto route = tr_->CalculateRoute(from_stop, to_stop);
     if (!route.is_found) {
         return json::Builder{}.StartDict()
             .Key("request_id"s).Value(id)

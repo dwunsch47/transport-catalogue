@@ -291,18 +291,19 @@ graph::DirectedWeightedGraph<double> Serializer::DeserializeGraph() {
     
 shared_ptr<router::TransportRouter> Serializer::DeserializeTransportRouter() {
     graph::DirectedWeightedGraph<double> graph = DeserializeGraph();
-    unordered_map<string, size_t> wait_vertexes(proto_tc_.transport_router().wait_vertexes().begin(), proto_tc_.transport_router().wait_vertexes().end());
-    unordered_map<string, size_t> travel_vertexes(proto_tc_.transport_router().travel_vertexes().begin(), proto_tc_.transport_router().travel_vertexes().end());
-    /*unordered_map<string, size_t> wait_vertexes;
+    //unordered_map<string, size_t> wait_vertexes(proto_tc_.transport_router().wait_vertexes().begin(), proto_tc_.transport_router().wait_vertexes().end());
+    //unordered_map<string, size_t> travel_vertexes(proto_tc_.transport_router().travel_vertexes().begin(), proto_tc_.transport_router().travel_vertexes().end());
+    unordered_map<string, size_t> wait_vertexes;
     for (const auto& [name, id] : proto_tc_.transport_router().wait_vertexes()) {
     	wait_vertexes[name] = id;
     }
     unordered_map<string, size_t> travel_vertexes;
     for (const auto& [name, id] : proto_tc_.transport_router().wait_vertexes()) {
     	travel_vertexes[name] = id;
-    }*/
+    }
 
-    shared_ptr<router::TransportRouter> tr = make_shared<router::TransportRouter>(tc_, graph, wait_vertexes, travel_vertexes);
+    //shared_ptr<router::TransportRouter> tr = make_shared<router::TransportRouter>(tc_, graph, wait_vertexes, travel_vertexes);
+    shared_ptr<router::TransportRouter> tr = make_shared<router::TransportRouter>(tc_);
     tr->LoadSettings(DeserializeRouterSettings());
     return tr;
 }

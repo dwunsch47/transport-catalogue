@@ -13,7 +13,7 @@ namespace router {
     
     
 TransportRouter::TransportRouter(tcat::TransportCatalogue& tc) : tc_(tc), graph_(tc.GetAllStopsCount() * 2) {
-	BuildGraph();
+	//BuildGraph();
 }
     
 TransportRouter::TransportRouter(tcat::TransportCatalogue& tc, graph::DirectedWeightedGraph<double> graph
@@ -68,8 +68,8 @@ RouteData TransportRouter::CalculateRoute(string from, string to) {
 void TransportRouter::BuildGraph() {
     size_t vertex_id = 0;
     
-    for (const auto& [orig_name, _] : tc_.GetAllStops()) {
-	string name = string(orig_name);
+    for (const auto& [_, stop_ptr] : tc_.GetAllStops()) {
+	string name = stop_ptr->name;
         wait_vertexes_[name] = vertex_id++;
         travel_vertexes_[name] = vertex_id++;
             

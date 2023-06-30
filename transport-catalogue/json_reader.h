@@ -30,7 +30,7 @@ private:
     json::Node OutputStopInfo(int id, const tcat::StopInfo& stop_info) const;
     json::Node OutputBusInfo(int id, const tcat::BusInfo& bus_info) const;
     json::Node OutputMap(int id) const;
-    json::Node OutputRoute(int id, std::string_view from_stop, std::string_view to_stop) const;
+    json::Node OutputRoute(int id, const std::string& from_stop, const std::string& to_stop) const;
     
     
     json::Document doc_{nullptr};
