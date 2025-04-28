@@ -14,10 +14,10 @@ Graph-based transport catalogue which supports adding stops and buses, creating 
  
   ### `make_base`
    - Constructs `JsonReader`, which takes newly constructed empty `tcat::TransportCatalogue` and `map_r::MapRenderer` via non-const references
-   - `JsonReader.LoadBaseQueries()` reads `std::cin` and parses all information needed for `tcat::TransportCatalogue` and `map_r::MapRenderer`, along with serialization settings
+   - `JsonReader.LoadBaseQueries()` takes non-const ref of desired INPUT stream (`std::cin`, for example), reads it and parses all information needed for `tcat::TransportCatalogue` and `map_r::MapRenderer`, along with serialization settings
    - After `tcat::TransportCatalogue` and `map_r::MapRenderer` have done all necessary calculations, all their data is serialized and saved
 
   ### `process_requests`
     - Constructs `JsonReader`, which takes newly constructed empty `tcat::TransportCatalogue` and `map_r::MapRenderer` via non-const references
-    - `JsonReader.LoadStatQueries()` reads `std::cin` and takes non-const ref of desired output stream (`std::cout`, for example), and parses de-serialization settings and stat requests
-    - After all data is de-serialized, requested stats are output into desired output stream in JSON format and (if requested) map in SVG format
+    - `JsonReader.LoadStatQueries()` takes non-const ref of desired INPUT stream (`std::cin`, for example), takes non-const ref of desired OUPUT stream (`std::cout`, for example), parses de-serialization settings and stat requests from INPUT stream
+    - After all data is de-serialized, requested stats are output into desired OUTPUT stream in JSON format and (if requested) map in SVG format
