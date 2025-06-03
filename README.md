@@ -142,8 +142,8 @@ Graph-based transport catalogue which supports adding stops and buses, creating 
 
 ## Usage:
 - Build Protobuf
-- Run this command:
+- Make new folder `build` inside project, got to it and run this command:
   ````
-  cmake . -DCMAKE_PREFIX_PATH=/path/to/built/protobuf
+  cmake .. -DCMAKE_PREFIX_PATH=/path/to/built/protobuf
   cmake --build .
   ````
